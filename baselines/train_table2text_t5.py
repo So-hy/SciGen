@@ -66,6 +66,7 @@ class SummarizationTrainer(BaseTransformer):
     def validation_step(self, batch, batch_idx):
         pad_token_id = self.tokenizer.pad_token_id
         source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
+
         generated_ids = self.model.generate(
             input_ids=source_ids,
             attention_mask=source_mask,
@@ -81,7 +82,10 @@ class SummarizationTrainer(BaseTransformer):
         ]
         target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
         loss = self._step(batch)
+        
+        # validation_step의 결과를 저장
         return {"val_loss": loss, "preds": preds, "target": target}
+
 
     def check_validation_end(self, outputs):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
@@ -132,43 +136,25 @@ class SummarizationTrainer(BaseTransformer):
 
         return self.check_validation_end(outputs)
 
-    def validation_epoch_end(self, outputs, prefix="val"):
-        self.step_count += 1
+    def on_validation_epoch_end(self):
+        """v2.0.0 이후 validation_epoch_end 대신 사용"""
+        # validation_epoch_end에서 사용했던 outputs를 인스턴스 변수로 저장하고 사용
+        val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
+        predictions = [x["preds"] for x in self.validation_step_outputs]
+        targets = [x["target"] for x in self.validation_step_outputs]
 
-        if "preds" in outputs[0]:
-            output_test_predictions_file = os.path.join(self.hparams.output_dir, "validation_predictions_" +
-                                                        str(self.count_valid_epoch) + ".txt")
-            output_test_targets_file = os.path.join(self.hparams.output_dir, "validation_targets_" +
-                                                        str(self.count_valid_epoch) + ".txt")
-            with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
-                for output_batch in outputs:
-                    p_writer.writelines(convert_text(s) + "\n" for s in output_batch["preds"])
-                    t_writer.writelines(convert_text(s) + "\n" for s in output_batch["target"])
+        # 예를 들어 BLEU 스코어 계산
+        bleu_info = eval_sacre_bleu(targets, predictions)
+        moverScore = eval_mover_score(targets, predictions)
 
-            bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
-            moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
+        # 결과 로깅
+        self.log("val_loss", val_loss_mean)
+        self.log("bleu_score", bleu_info)
+        self.log("mover_score", moverScore)
+        
+        # validation_step_outputs 초기화
+        self.validation_step_outputs.clear()
 
-            metrics = {
-                f"{prefix}_avg_bleu": bleu_info,
-                f"{prefix}_mover_mean1": moverScore[0],
-                f"{prefix}_mover_median1": moverScore[1],
-                "step_count": self.step_count,
-            }
-
-            logger.info("valid epoch: %s", self.count_valid_epoch)
-            logger.info("%s bleu_info: %s", self.count_valid_epoch, bleu_info)
-            logger.info("%s mover score: %s", self.count_valid_epoch, moverScore)
-
-            avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-            mover_tensor: torch.FloatTensor = torch.tensor(moverScore[0]).type_as(avg_loss)
-
-            self.count_valid_epoch += 1
-
-        else:
-            logger.info('not in')
-            avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-
-        return {"avg_val_loss": avg_loss, "log": metrics, f"{prefix}_mover": mover_tensor}
 
     def get_dataloader(self, type_path: str, batch_size: int, shuffle: bool = False) -> DataLoader:
         dataset = AgendaDataset(self.tokenizer, type_path=type_path, **self.dataset_kwargs)
