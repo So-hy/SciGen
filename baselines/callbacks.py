@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_checkpoint_callback(output_dir, metric):
-    """Saves the best model by validation ROUGE2 score."""
+    """Saves the best model by validation metric score."""
     if metric == "mover":
         exp = "{val_mover:.2f}-{step_count}"
     elif metric == "mover_median":
@@ -28,16 +28,16 @@ def get_checkpoint_callback(output_dir, metric):
     elif metric == "bleu":
         exp = "{val_avg_bleu:.3f}-{step_count}"
     else:
-        raise NotImplementedError(
-            f"seq2seq callbacks only support rouge2 and bleu, got {metric}, You can make your own by adding to this function."
-        )
-
+        raise NotImplementedError(f"seq2seq callbacks only support mover, bleu, got {metric}")
+    
     checkpoint_callback = ModelCheckpoint(
-        filepath=os.path.join(output_dir, exp),
+        dirpath=output_dir,  # 최신 버전에서는 filepath 대신 dirpath 사용
+        filename=exp,
         monitor=f"val_{metric}",
         mode="max",
         save_top_k=5,
-        period=0,  # maybe save a checkpoint every time val is run, not just end of epoch.
+        save_last=True,  # 마지막 체크포인트도 저장
+        every_n_epochs=1  # 매 epoch마다 저장
     )
     return checkpoint_callback
 
