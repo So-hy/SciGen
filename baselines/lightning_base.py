@@ -120,12 +120,13 @@ class BaseTransformer(pl.LightningModule):
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
         
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure=None):
+        # closure가 있으면 명시적으로 호출
         if optimizer_closure is not None:
-            optimizer.step(closure=optimizer_closure)
-        else:
-            optimizer.step()
-        
-        optimizer.zero_grad()  # gradient 초기화
+            optimizer_closure()
+    
+        # optimizer step 호출
+        optimizer.step()
+        optimizer.zero_grad()
         
         # lr_schedulers() 호출 후 단일 객체일 경우 처리
         lr_scheduler = self.lr_schedulers()  # 이 부분이 리스트가 아닐 수 있음
