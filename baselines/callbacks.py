@@ -25,19 +25,19 @@ def get_checkpoint_callback(output_dir, metric):
         exp = "{val_mover:.2f}-{step_count}"
     elif metric == "mover_median":
         exp = "{val_mover_median:.4f}-{step_count}"
-    elif metric == "bleu":
-        exp = "{val_avg_bleu:.3f}-{step_count}"
+    elif metric == "bleu_score":  # 여기서도 bleu_score 사용
+        exp = "{bleu_score:.3f}-{step_count}"  # val_avg_bleu 대신 bleu_score로 수정
     else:
-        raise NotImplementedError(f"seq2seq callbacks only support mover, bleu, got {metric}")
+        raise NotImplementedError(f"seq2seq callbacks only support mover, bleu_score, got {metric}")
     
     checkpoint_callback = ModelCheckpoint(
-        dirpath=output_dir,  # 최신 버전에서는 filepath 대신 dirpath 사용
+        dirpath=output_dir,
         filename=exp,
-        monitor=f"val_{metric}",
+        monitor=f"val_{metric}",  # val_bleu_score 모니터링
         mode="max",
         save_top_k=5,
-        save_last=True,  # 마지막 체크포인트도 저장
-        every_n_epochs=1  # 매 epoch마다 저장
+        save_last=True,
+        every_n_epochs=1
     )
     return checkpoint_callback
 
