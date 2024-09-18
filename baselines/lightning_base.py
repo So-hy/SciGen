@@ -135,19 +135,20 @@ class BaseTransformer(pl.LightningModule):
     #     return self.validation_end(outputs)
 
     def train_dataloader(self):
-    train_batch_size = getattr(self.hparams, 'train_batch_size', 32)  # 기본값 설정
-    dataloader = self.load_dataset("train", train_batch_size)
+        train_batch_size = getattr(self.hparams, 'train_batch_size', 32)  # 기본값 설정
+        dataloader = self.load_dataset("train", train_batch_size)
 
-    t_total = (
-        (len(dataloader.dataset) // (train_batch_size * max(1, self.hparams.n_gpu)))
-        // self.hparams.gradient_accumulation_steps
-        * float(self.hparams.num_train_epochs)
-    )
-    scheduler = get_linear_schedule_with_warmup(
-        self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=t_total
-    )
-    self.lr_scheduler = scheduler
-    return dataloader
+        t_total = (
+            (len(dataloader.dataset) // (train_batch_size * max(1, self.hparams.n_gpu)))
+            // self.hparams.gradient_accumulation_steps
+            * float(self.hparams.num_train_epochs)
+        )
+        scheduler = get_linear_schedule_with_warmup(
+            self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=t_total
+        )
+        self.lr_scheduler = scheduler
+        return dataloader
+
     def _feature_file(self, mode):
         return os.path.join(
             self.hparams.data_dir,
