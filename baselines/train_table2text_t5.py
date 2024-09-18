@@ -64,27 +64,29 @@ class SummarizationTrainer(BaseTransformer):
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        pad_token_id = self.tokenizer.pad_token_id
-        source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
-
-        generated_ids = self.model.generate(
-            input_ids=source_ids,
-            attention_mask=source_mask,
-            num_beams=5,
-            max_length=512,
-            length_penalty=5.0,
-            early_stopping=True,
-            use_cache=True,
-        )
-        preds = [
-            self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-            for g in generated_ids
-        ]
-        target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
-        loss = self._step(batch)
-        
-        # validation_step의 결과를 저장
-        return {"val_loss": loss, "preds": preds, "target": target}
+      pad_token_id = self.tokenizer.pad_token_id
+      source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
+  
+      generated_ids = self.model.generate(
+          input_ids=source_ids,
+          attention_mask=source_mask,
+          num_beams=5,
+          max_length=512,
+          length_penalty=5.0,
+          early_stopping=True,
+          use_cache=True,
+      )
+      preds = [
+          self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+          for g in generated_ids
+      ]
+      target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
+      loss = self._step(batch)
+      
+      # validation_step_outputs에 값을 추가
+      self.validation_step_outputs.append({"val_loss": loss, "preds": preds, "target": target})
+      
+      return {"val_loss": loss, "preds": preds, "target": target}
 
 
     def check_validation_end(self, outputs):
@@ -137,23 +139,27 @@ class SummarizationTrainer(BaseTransformer):
         return self.check_validation_end(outputs)
 
     def on_validation_epoch_end(self):
-        """v2.0.0 이후 validation_epoch_end 대신 사용"""
-        # validation_epoch_end에서 사용했던 outputs를 인스턴스 변수로 저장하고 사용
-        val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
-        predictions = [x["preds"] for x in self.validation_step_outputs]
-        targets = [x["target"] for x in self.validation_step_outputs]
-
-        # 예를 들어 BLEU 스코어 계산
-        bleu_info = eval_sacre_bleu(targets, predictions)
-        moverScore = eval_mover_score(targets, predictions)
-
-        # 결과 로깅
-        self.log("val_loss", val_loss_mean)
-        self.log("bleu_score", bleu_info)
-        self.log("mover_score", moverScore)
-        
-        # validation_step_outputs 초기화
-        self.validation_step_outputs.clear()
+            """validation_epoch_end 대신 사용"""
+    # validation_step_outputs가 비어있는지 확인
+      if len(self.validation_step_outputs) == 0:
+          logger.warning("validation_step_outputs is empty. Skipping on_validation_epoch_end.")
+          return  # 비어 있을 경우 아무것도 하지 않음
+      
+      val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
+      predictions = [x["preds"] for x in self.validation_step_outputs]
+      targets = [x["target"] for x in self.validation_step_outputs]
+  
+      # BLEU 스코어 계산
+      bleu_info = eval_sacre_bleu(targets, predictions)
+      moverScore = eval_mover_score(targets, predictions)
+  
+      # 결과 로깅
+      self.log("val_loss", val_loss_mean)
+      self.log("bleu_score", bleu_info)
+      self.log("mover_score", moverScore)
+  
+      # validation_step_outputs 초기화
+      self.validation_step_outputs.clear()
 
     def on_test_epoch_end(self):
       if len(self.validation_step_outputs) == 0:
