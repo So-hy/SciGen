@@ -249,46 +249,37 @@ def add_generic_args(parser, root_dir):
     parser.add_argument("--seed", type=int, default=42, help="random seed for initialization")
 
 
-def generic_train(model: BaseTransformer, args: argparse.Namespace,
-            early_stopping_callback=False,  checkpoint_callback=None,
-            ):
-    # init model
+def generic_train(model: BaseTransformer, args: argparse.Namespace, early_stopping_callback=None, checkpoint_callback=None):
     set_seed(args)
 
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
-        raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
-
     if not checkpoint_callback:
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filepath=args.output_dir, prefix="checkpoint", monitor="val_loss", mode="min", save_top_k=-1
-    )
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=args.output_dir, monitor="val_loss", mode="min", save_top_k=-1, save_last=True
+        )
+
+    callbacks = [LoggingCallback(), checkpoint_callback]
+    if early_stopping_callback:
+        callbacks.append(early_stopping_callback)
 
     train_params = dict(
         accumulate_grad_batches=args.gradient_accumulation_steps,
         gpus=args.n_gpu,
         max_epochs=args.num_train_epochs,
-        early_stop_callback=early_stopping_callback,
         gradient_clip_val=args.max_grad_norm,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[LoggingCallback()],
-        log_save_interval=1,
+        callbacks=callbacks,  # callback 리스트로 전달
+        log_every_n_steps=1,
         num_sanity_val_steps=4,
-        reload_dataloaders_every_epoch=True
+        reload_dataloaders_every_n_epochs=True
     )
 
     if args.fp16:
-        train_params["use_amp"] = args.fp16
-        train_params["amp_level"] = args.fp16_opt_level
+        train_params["precision"] = 16  # 최신 버전에서는 'precision'으로 설정
 
     if args.n_tpu_cores > 0:
-        global xm
-        import torch_xla.core.xla_model as xm
-
-        train_params["num_tpu_cores"] = args.n_tpu_cores
-        train_params["gpus"] = 0
+        train_params["tpu_cores"] = args.n_tpu_cores
 
     if args.n_gpu > 1:
-        train_params["distributed_backend"] = "ddp"
+        train_params["strategy"] = "ddp"  # 'distributed_backend' 대신 'strategy' 사용
 
     trainer = pl.Trainer(**train_params)
 
