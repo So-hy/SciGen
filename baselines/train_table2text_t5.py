@@ -53,10 +53,10 @@ class SummarizationTrainer(BaseTransformer):
       labels = y[:, 1:].clone()
       labels[y[:, 1:] == pad_token_id] = -100  # pad 토큰을 -100으로 설정해 손실 계산에서 제외
 
-    outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=y_ids, labels=labels)
-
-    loss = outputs[0]  # loss는 첫 번째 출력
-    return loss
+      outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=y_ids, labels=labels)
+  
+      loss = outputs[0]  # loss는 첫 번째 출력
+      return loss
 
     def training_step(self, batch, batch_idx):
         loss = self._step(batch)
