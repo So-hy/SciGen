@@ -252,15 +252,16 @@ def main(args):
 
     model = SummarizationTrainer(args)
     if args.checkpoint_model:
-        model = model.load_from_checkpoint(args.checkpoint_model)
-        logger.info("args.data_dir: %s", args.data_dir)
-        model.dataset_kwargs: dict = dict(
-            data_dir=args.data_dir,
-            max_source_length=args.max_source_length,
-            max_target_length=args.max_target_length,
-        )
-        model.hparams = args
-
+      # 여기서 SummarizationTrainer 클래스에서 직접 호출해야 합니다.
+      model = SummarizationTrainer.load_from_checkpoint(args.checkpoint_model)
+      logger.info("args.data_dir: %s", args.data_dir)
+      model.dataset_kwargs: dict = dict(
+          data_dir=args.data_dir,
+          max_source_length=args.max_source_length,
+          max_target_length=args.max_target_length,
+      )
+      model.hparams = args
+      
     if args.early_stopping_patience >= 0:
         es_callback = get_early_stopping_callback('bleu_score', args.early_stopping_patience)  # 여기서 bleu_score 사용
     else:
@@ -274,12 +275,13 @@ def main(args):
 
     if args.do_predict:
         if args.checkpoint_model:
-            trainer.test(model)
+            trainer.test(SummarizationTrainer.load_from_checkpoint(args.checkpoint_model))
+      
         else:
             checkpoints = list(sorted(glob.glob(os.path.join(args.output_dir, "*.ckpt"), recursive=True)))
             if checkpoints:
                 print('Loading weights from {}'.format(checkpoints[-1]))
-                model = model.load_from_checkpoint(checkpoints[-1])
+                model = SummarizationTrainer.load_from_checkpoint(checkpoints[-1])
                 model.dataset_kwargs: dict = dict(
                     data_dir=args.data_dir,
                     max_source_length=args.max_source_length,
