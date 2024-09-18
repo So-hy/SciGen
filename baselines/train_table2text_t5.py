@@ -56,20 +56,16 @@ class SummarizationTrainer(BaseTransformer):
         outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=y_ids, lm_labels=lm_labels,)
 
         loss = outputs[0]
-
         return loss
 
     def training_step(self, batch, batch_idx):
         loss = self._step(batch)
-
         tensorboard_logs = {"train_loss": loss}
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        #repetition_penalty = 2.5,
         pad_token_id = self.tokenizer.pad_token_id
         source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
-        # NOTE: the following kwargs get more speed and lower quality summaries than those in evaluate_cnn.py
         generated_ids = self.model.generate(
             input_ids=source_ids,
             attention_mask=source_mask,
@@ -86,12 +82,6 @@ class SummarizationTrainer(BaseTransformer):
         target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
         loss = self._step(batch)
         return {"val_loss": loss, "preds": preds, "target": target}
-        #return {"val_loss": loss}
-
-    # def validation_end(self, outputs):
-    #     avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-    #     tensorboard_logs = {"val_loss": avg_loss}
-    #     return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def check_validation_end(self, outputs):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
@@ -99,10 +89,8 @@ class SummarizationTrainer(BaseTransformer):
         return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_step(self, batch, batch_idx):
-
         pad_token_id = self.tokenizer.pad_token_id
         source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
-        # NOTE: the following kwargs get more speed and lower quality summaries than those in evaluate_cnn.py
         generated_ids = self.model.generate(
             input_ids=source_ids,
             attention_mask=source_mask,
@@ -118,11 +106,7 @@ class SummarizationTrainer(BaseTransformer):
         ]
         target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
         loss = self._step(batch)
-
         return {"val_loss": loss, "preds": preds, "target": target}
-
-    # def test_end(self, outputs):
-    #     return self.validation_end(outputs)
 
     def test_epoch_end(self, outputs):
         if "preds" in outputs[0]:
@@ -130,19 +114,12 @@ class SummarizationTrainer(BaseTransformer):
                                                         str(self.count_valid_epoch) + ".txt")
             output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
                                                         str(self.count_valid_epoch) + ".txt")
-            # write predictions and targets for later rouge evaluation.
             with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
                 for output_batch in outputs:
                     p_writer.writelines(convert_text(s) + "\n" for s in output_batch["preds"])
                     t_writer.writelines(convert_text(s) + "\n" for s in output_batch["target"])
-                p_writer.close()
-                t_writer.close()
-
-            #bleu_info = eval_bleu_sents(output_test_targets_file, output_test_predictions_file)
             bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
-            #bleu_info = eval_bleu(output_test_targets_file, output_test_predictions_file)
             moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
-
 
             logger.info("valid epoch: %s", self.count_valid_epoch)
             logger.info("%s bleu_info: %s", self.count_valid_epoch, bleu_info)
@@ -155,7 +132,6 @@ class SummarizationTrainer(BaseTransformer):
 
         return self.check_validation_end(outputs)
 
-
     def validation_epoch_end(self, outputs, prefix="val"):
         self.step_count += 1
 
@@ -164,71 +140,46 @@ class SummarizationTrainer(BaseTransformer):
                                                         str(self.count_valid_epoch) + ".txt")
             output_test_targets_file = os.path.join(self.hparams.output_dir, "validation_targets_" +
                                                         str(self.count_valid_epoch) + ".txt")
-            # write predictions and targets for later rouge evaluation.
             with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
                 for output_batch in outputs:
                     p_writer.writelines(convert_text(s) + "\n" for s in output_batch["preds"])
                     t_writer.writelines(convert_text(s) + "\n" for s in output_batch["target"])
-                p_writer.close()
-                t_writer.close()
 
-            if self.count_valid_epoch >= 0:
-                bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
-                moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
-            else:
-                bleu_info = 0
-                moverScore = [0, 0]
+            bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
+            moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
 
-            metrics = {}
-            metrics["{}_avg_bleu".format(prefix)] = bleu_info
-            metrics["{}_mover_mean1".format(prefix)] = moverScore[0]
-            metrics["{}_mover_median1".format(prefix)] = moverScore[1]
-            metrics["step_count"] = self.step_count
-
+            metrics = {
+                f"{prefix}_avg_bleu": bleu_info,
+                f"{prefix}_mover_mean1": moverScore[0],
+                f"{prefix}_mover_median1": moverScore[1],
+                "step_count": self.step_count,
+            }
 
             logger.info("valid epoch: %s", self.count_valid_epoch)
             logger.info("%s bleu_info: %s", self.count_valid_epoch, bleu_info)
             logger.info("%s mover score: %s", self.count_valid_epoch, moverScore)
 
             avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-
             mover_tensor: torch.FloatTensor = torch.tensor(moverScore[0]).type_as(avg_loss)
-
 
             self.count_valid_epoch += 1
 
         else:
             logger.info('not in')
             avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        #tensorboard_logs = {"val_loss": avg_loss}
 
-        return {"avg_val_loss": avg_loss, "log": metrics, "{}_mover".format(prefix): mover_tensor}
-        #return self.check_validation_end(outputs)
-
-    def save_metrics(self, latest_metrics, type_path):
-        self.metrics[type_path].append(latest_metrics)
-        save_json(self.metrics, self.metrics_save_path)
+        return {"avg_val_loss": avg_loss, "log": metrics, f"{prefix}_mover": mover_tensor}
 
     def get_dataloader(self, type_path: str, batch_size: int, shuffle: bool = False) -> DataLoader:
         dataset = AgendaDataset(self.tokenizer, type_path=type_path, **self.dataset_kwargs)
         logger.info('loading %s dataloader...', type_path)
         dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn, shuffle=shuffle,
-                                num_workers=20)
+                                num_workers=4)  # num_workers 값 조정
         logger.info('done')
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
-        dataloader = self.get_dataloader("train", batch_size=self.hparams.train_batch_size, shuffle=True)
-        t_total = (
-            (len(dataloader.dataset) // (self.hparams.train_batch_size * max(1, self.hparams.n_gpu)))
-            // self.hparams.gradient_accumulation_steps
-            * float(self.hparams.num_train_epochs)
-        )
-        scheduler = get_linear_schedule_with_warmup(
-            self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=t_total
-        )
-        self.lr_scheduler = scheduler
-        return dataloader
+        return self.get_dataloader("train", batch_size=self.hparams.train_batch_size, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
         return self.get_dataloader("dev", batch_size=self.hparams.eval_batch_size)
@@ -239,58 +190,51 @@ class SummarizationTrainer(BaseTransformer):
     @staticmethod
     def add_model_specific_args(parser, root_dir):
         BaseTransformer.add_model_specific_args(parser, root_dir)
-        # Add BART specific options
         parser.add_argument(
             "--max_source_length",
-            default=250, #384,
+            default=250,
             type=int,
-            help="The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded.",
+            help="The maximum total input sequence length after tokenization.",
         )
         parser.add_argument(
             "--max_target_length",
             default=512,
             type=int,
-            help="The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded.",
+            help="The maximum total output sequence length after tokenization.",
         )
-
         parser.add_argument(
             "--data_dir",
             default=None,
             type=str,
             required=True,
-            help="The input data dir. Should contain the dataset files for the CNN/DM summarization task.",
+            help="The input data dir.",
         )
-
         parser.add_argument(
             "--early_stopping_patience",
             type=int,
             default=-1,
             required=False,
-            help="-1 means never early stop. early_stopping_patience is measured in validation checks, not epochs. So val_check_interval will effect it.",
+            help="Early stopping patience.",
         )
         parser.add_argument(
             "--checkpoint",
             default=None,
             type=str,
-            help="The checkpoint to initialize model",
+            help="The checkpoint to initialize model.",
         )
         parser.add_argument(
             "--checkpoint_model",
             default=None,
             type=str,
-            help="The input data dir. Should contain the dataset files for the CNN/DM summarization task.",
+            help="The checkpoint model file.",
         )
         return parser
 
-
 def main(args):
-
-    # If output_dir not provided, a folder will be generated in pwd
     if not args.output_dir:
-        args.output_dir = os.path.join("./results", f"{args.task}_{time.strftime('%Y%m%d_%H%M%S')}",)
+        args.output_dir = os.path.join("./results", f"{args.task}_{time.strftime('%Y%m%d_%H%M%S')}")
         os.makedirs(args.output_dir)
+
     model = SummarizationTrainer(args)
     if args.checkpoint_model:
         model = model.load_from_checkpoint(args.checkpoint_model)
@@ -301,23 +245,19 @@ def main(args):
             max_target_length=args.max_target_length,
         )
         model.hparams = args
-    #trainer = generic_train(model, args)
 
     if args.early_stopping_patience >= 0:
         es_callback = get_early_stopping_callback(model.val_metric, args.early_stopping_patience)
     else:
         es_callback = False
 
-    trainer = generic_train(model, args, 
-                   checkpoint_callback=get_checkpoint_callback(args.output_dir, model.val_metric),
-                    early_stopping_callback=es_callback)
+    trainer = generic_train(
+        model, args, 
+        checkpoint_callback=get_checkpoint_callback(args.output_dir, model.val_metric),
+        early_stopping_callback=es_callback
+    )
 
-    # Optionally, predict on dev set and write to output_dir
     if args.do_predict:
-        # See https://github.com/huggingface/transformers/issues/3159
-        # pl use this format to create a checkpoint:
-        # https://github.com/PyTorchLightning/pytorch-lightning/blob/master\
-        # /pytorch_lightning/callbacks/model_checkpoint.py#L169
         if args.checkpoint_model:
             trainer.test(model)
         else:
@@ -332,14 +272,10 @@ def main(args):
                 )
                 model.hparams = args
             trainer.test(model)
- 
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     add_generic_args(parser, os.getcwd())
     parser = SummarizationTrainer.add_model_specific_args(parser, os.getcwd())
     args = parser.parse_args()
-
     main(args)
