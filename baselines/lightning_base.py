@@ -129,10 +129,9 @@ class BaseTransformer(pl.LightningModule):
         optimizer.zero_grad()  # gradient 초기화
     
         # lr_schedulers가 존재하는 경우 step 호출
-        if self.lr_schedulers:
+        if self.lr_schedulers:  # 괄호를 사용하지 않고 속성으로 접근
             for lr_scheduler in self.lr_schedulers:
-                lr_scheduler.step()
-                
+                lr_scheduler['scheduler'].step()  # 스케줄러 step 호출
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
