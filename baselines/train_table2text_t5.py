@@ -42,21 +42,21 @@ class SummarizationTrainer(BaseTransformer):
 
         logger.info("parameters %s", hparams)
 
-    def forward(self, input_ids, attention_mask=None, decoder_input_ids=None, lm_labels=None):
-        return self.model(
-            input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids, lm_labels=lm_labels,
-        )
-
+    def forward(self, input_ids, attention_mask=None, decoder_input_ids=None, labels=None):
+      return self.model(
+          input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids, labels=labels,
+      )
     def _step(self, batch):
-        pad_token_id = self.tokenizer.pad_token_id
-        source_ids, source_mask, y = batch["source_ids"], batch["source_mask"], batch["target_ids"]
-        y_ids = y[:, :-1].contiguous()
-        lm_labels = y[:, 1:].clone()
-        lm_labels[y[:, 1:] == pad_token_id] = -100
-        outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=y_ids, lm_labels=lm_labels,)
+      pad_token_id = self.tokenizer.pad_token_id
+      source_ids, source_mask, y = batch["source_ids"], batch["source_mask"], batch["target_ids"]
+      y_ids = y[:, :-1].contiguous()
+      labels = y[:, 1:].clone()
+      labels[y[:, 1:] == pad_token_id] = -100  # pad 토큰을 -100으로 설정해 손실 계산에서 제외
 
-        loss = outputs[0]
-        return loss
+    outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=y_ids, labels=labels)
+
+    loss = outputs[0]  # loss는 첫 번째 출력
+    return loss
 
     def training_step(self, batch, batch_idx):
         loss = self._step(batch)
