@@ -156,24 +156,24 @@ class SummarizationTrainer(BaseTransformer):
         self.validation_step_outputs.clear()
 
     def on_test_epoch_end(self):
-    if len(self.validation_step_outputs) == 0:
-        return
-    
-    val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
-    predictions = [x["preds"] for x in self.validation_step_outputs]
-    targets = [x["target"] for x in self.validation_step_outputs]
-    
-    # BLEU 스코어 계산
-    bleu_info = eval_sacre_bleu(targets, predictions)
-    moverScore = eval_mover_score(targets, predictions)
-    
-    # 결과 로깅
-    self.log("test_loss", val_loss_mean)
-    self.log("bleu_score", bleu_info)
-    self.log("mover_score", moverScore)
-    
-    # validation_step_outputs 초기화
-    self.validation_step_outputs.clear()
+      if len(self.validation_step_outputs) == 0:
+          return
+      
+      val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
+      predictions = [x["preds"] for x in self.validation_step_outputs]
+      targets = [x["target"] for x in self.validation_step_outputs]
+      
+      # BLEU 스코어 계산
+      bleu_info = eval_sacre_bleu(targets, predictions)
+      moverScore = eval_mover_score(targets, predictions)
+      
+      # 결과 로깅
+      self.log("test_loss", val_loss_mean)
+      self.log("bleu_score", bleu_info)
+      self.log("mover_score", moverScore)
+      
+      # validation_step_outputs 초기화
+      self.validation_step_outputs.clear()
 
     def get_dataloader(self, type_path: str, batch_size: int, shuffle: bool = False) -> DataLoader:
         dataset = AgendaDataset(self.tokenizer, type_path=type_path, **self.dataset_kwargs)
