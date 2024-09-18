@@ -139,6 +139,7 @@ class SummarizationTrainer(BaseTransformer):
         return self.check_validation_end(outputs)
 
     def on_validation_epoch_end(self):
+      """v2.0.0 이후 validation_epoch_end 대신 사용"""
       if len(self.validation_step_outputs) == 0:
           logger.warning("validation_step_outputs is empty. Skipping on_validation_epoch_end.")
           return  # 비어 있을 경우 아무것도 하지 않음
@@ -154,7 +155,10 @@ class SummarizationTrainer(BaseTransformer):
       # 결과 로깅
       self.log("val_loss", val_loss_mean)
       self.log("bleu_score", bleu_info)
-      self.log("mover_score", moverScore)
+      
+      # moverScore가 tuple 형태이므로 개별적으로 로깅
+      self.log("mover_score_mean", moverScore[0])
+      self.log("mover_score_median", moverScore[1])
   
       # validation_step_outputs 초기화
       self.validation_step_outputs.clear()
