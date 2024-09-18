@@ -91,8 +91,6 @@ class BaseTransformer(pl.LightningModule):
         return True
 
     def configure_optimizers(self):
-        "Prepare optimizer and schedule (linear warmup and decay)"
-    
         model = self.model
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -118,16 +116,28 @@ class BaseTransformer(pl.LightningModule):
         )
         
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
+
+
+    def training_step(self, batch, batch_idx):
+        # 손실 계산
+        inputs = batch["input_ids"]  # 적절한 입력 형식으로 수정
+        labels = batch["labels"]       # 적절한 라벨 형식으로 수정
         
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx):
-        def optimizer_closure():
-            optimizer.zero_grad()  # 기울기 초기화
-            loss = self.training_step(batch, batch_idx)  # 손실 계산
-            loss.backward()  # 기울기 계산
-            return loss
-        
-        optimizer.step(closure=optimizer_closure)
-        optimizer.zero_grad()
+        outputs = self.model(inputs, labels=labels)
+        loss = outputs.loss
+    
+        self.log("train_loss", loss)  # 손실 로깅
+        return loss
+    
+    #def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, batch):
+    #    def optimizer_closure():
+    #        optimizer.zero_grad()
+    #        loss = self.training_step(batch, batch_idx)  # 현재 배치를 사용하여 손실 계산
+    #        loss.backward()
+    #        return loss
+    
+    #    optimizer.step(closure=optimizer_closure)
+    #    optimizer.zero_grad()
     
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
