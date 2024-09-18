@@ -122,10 +122,8 @@ class BaseTransformer(pl.LightningModule):
         
         return [optimizer], [scheduler]
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-        if self.trainer.use_tpu:
-            xm.optimizer_step(optimizer)
-        else:
-            optimizer.step()
+        # TPU 관련 부분 제거
+        optimizer.step()
         optimizer.zero_grad()
         self.lr_scheduler.step()
 
