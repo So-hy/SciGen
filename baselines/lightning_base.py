@@ -121,13 +121,11 @@ class BaseTransformer(pl.LightningModule):
         
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure=None):
         if optimizer_closure is not None:
-            print("Calling optimizer closure...")
             optimizer.step(closure=optimizer_closure)
         else:
-            print("No optimizer closure provided.")
             optimizer.step()
         optimizer.zero_grad()
-        
+    
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
