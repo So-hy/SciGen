@@ -122,13 +122,13 @@ class BaseTransformer(pl.LightningModule):
         
         return [optimizer], [scheduler]
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
-        # optimizer step 및 스케줄러 step
         optimizer.step()
         optimizer.zero_grad()
-        
-        # lr_schedulers[0]로 첫 번째 스케줄러 step 적용
-        if self.lr_schedulers():
-            self.lr_schedulers[0].step()
+    
+        # lr_schedulers() 호출해서 첫 번째 스케줄러 step 실행
+        lr_schedulers = self.lr_schedulers()
+        if lr_schedulers:
+            lr_schedulers[0].step()
 
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
