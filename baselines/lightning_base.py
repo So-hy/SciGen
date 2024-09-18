@@ -119,11 +119,14 @@ class BaseTransformer(pl.LightningModule):
         
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
         
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure=None):
-        if optimizer_closure is not None:
-            optimizer.step(closure=optimizer_closure)
-        else:
-            optimizer.step()
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx):
+        def optimizer_closure():
+            optimizer.zero_grad()  # 기울기 초기화
+            loss = self.training_step(batch, batch_idx)  # 손실 계산
+            loss.backward()  # 기울기 계산
+            return loss
+        
+        optimizer.step(closure=optimizer_closure)
         optimizer.zero_grad()
     
     def get_progress_bar_dict(self):
