@@ -127,14 +127,11 @@ class BaseTransformer(pl.LightningModule):
         # optimizer step 호출
         optimizer.step()
         optimizer.zero_grad()
-        
-        # lr_schedulers() 호출 후 단일 객체일 경우 처리
-        lr_scheduler = self.lr_schedulers()  # 이 부분이 리스트가 아닐 수 있음
-        if isinstance(lr_scheduler, list):  # 리스트일 경우 반복 처리
-            for scheduler in lr_scheduler:
-                scheduler.step()
-        else:  # 단일 객체일 경우 바로 step 호출
-            lr_scheduler.step()
+    
+        # lr_schedulers가 존재하는 경우 step 호출
+        if self.lr_schedulers():
+            for lr_scheduler in self.lr_schedulers():
+                lr_scheduler.step()
     
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
