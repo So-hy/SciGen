@@ -92,7 +92,8 @@ class BaseTransformer(pl.LightningModule):
 
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
-
+    
+    # Optimizer 설정
         model = self.model
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -106,13 +107,20 @@ class BaseTransformer(pl.LightningModule):
             },
         ]
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.hparams.learning_rate, eps=self.hparams.adam_epsilon)
-
+        
+        # 전체 학습 스텝 수 계산
+        # train_dataloader 호출을 통해 총 스텝 수를 계산
+        train_dataloader = self.train_dataloader()
+        num_training_steps = (
+            len(train_dataloader.dataset) // self.hparams.train_batch_size
+        ) * self.hparams.num_train_epochs
+        
         # Scheduler 설정
         scheduler = get_linear_schedule_with_warmup(
-            optimizer, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=self.total_steps
+            optimizer, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=num_training_steps
         )
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
-
+        
+        return [optimizer], [scheduler]
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None):
         if self.trainer.use_tpu:
             xm.optimizer_step(optimizer)
