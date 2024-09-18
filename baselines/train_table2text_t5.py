@@ -139,8 +139,6 @@ class SummarizationTrainer(BaseTransformer):
         return self.check_validation_end(outputs)
 
     def on_validation_epoch_end(self):
-            """validation_epoch_end 대신 사용"""
-    # validation_step_outputs가 비어있는지 확인
       if len(self.validation_step_outputs) == 0:
           logger.warning("validation_step_outputs is empty. Skipping on_validation_epoch_end.")
           return  # 비어 있을 경우 아무것도 하지 않음
