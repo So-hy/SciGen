@@ -120,7 +120,7 @@ class BaseTransformer(pl.LightningModule):
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
         
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure=None):
-        # closure가 있으면 명시적으로 호출
+        # optimizer_closure가 있으면 실행
         if optimizer_closure is not None:
             optimizer_closure()
     
@@ -128,10 +128,10 @@ class BaseTransformer(pl.LightningModule):
         optimizer.step()
         optimizer.zero_grad()
     
-        # lr_schedulers가 존재하는 경우 step 호출
-        if self.lr_schedulers():
-            for lr_scheduler in self.lr_schedulers():
-                lr_scheduler.step()
+        # lr_schedulers가 존재하는 경우에 대해 처리
+        lr_scheduler = self.lr_schedulers()  # lr_schedulers를 리스트로 처리하는 게 아닌 단일 호출로 사용
+        if lr_scheduler is not None:
+            lr_scheduler.step()  # 학습 단계에 맞춰 스케줄러 step 호출
     
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
