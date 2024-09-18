@@ -59,9 +59,9 @@ class SummarizationTrainer(BaseTransformer):
       return loss
 
     def training_step(self, batch, batch_idx):
-        loss = self._step(batch)
-        tensorboard_logs = {"train_loss": loss}
-        return {"loss": loss, "log": tensorboard_logs}
+      loss = self._step(batch)  # 손실 계산
+      tensorboard_logs = {"train_loss": loss}
+      return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
       pad_token_id = self.tokenizer.pad_token_id
