@@ -262,7 +262,7 @@ def main(args):
         model.hparams = args
 
     if args.early_stopping_patience >= 0:
-        es_callback = get_early_stopping_callback(model.val_metric, args.early_stopping_patience)
+        es_callback = get_early_stopping_callback('bleu_score', args.early_stopping_patience) #	val_loss,bleu, mover score 등.
     else:
         es_callback = False
 
