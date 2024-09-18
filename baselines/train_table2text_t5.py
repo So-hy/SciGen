@@ -63,11 +63,7 @@ class SummarizationTrainer(BaseTransformer):
       tensorboard_logs = {"train_loss": loss}
       return {"loss": loss, "log": tensorboard_logs}
 
-    def optimizer_closure(self, batch, batch_idx):
-      self.optimizer.zero_grad()  # 기울기 초기화
-      loss = self.training_step(batch, batch_idx)  # 손실 계산
-      loss.backward()  # 기울기 계산
-      return loss
+    
   
     def validation_step(self, batch, batch_idx):
       pad_token_id = self.tokenizer.pad_token_id
