@@ -33,7 +33,7 @@ def get_checkpoint_callback(output_dir, metric):
     checkpoint_callback = ModelCheckpoint(
         dirpath=output_dir,
         filename=exp,
-        monitor=f"val_{metric}",  # val_bleu_score 모니터링
+        monitor=f"{metric}",  # val_bleu_score 모니터링
         mode="max",
         save_top_k=5,
         save_last=True,
@@ -43,5 +43,5 @@ def get_checkpoint_callback(output_dir, metric):
 
 
 def get_early_stopping_callback(metric, patience):
-    return EarlyStopping(monitor=f"val_{metric}", mode="max", patience=patience, verbose=True,)
+    return EarlyStopping(monitor=f"{metric}", mode="max", patience=patience, verbose=True,)
 
