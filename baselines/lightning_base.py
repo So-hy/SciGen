@@ -272,10 +272,11 @@ def generic_train(model: BaseTransformer, args: argparse.Namespace, early_stoppi
 
     train_params = dict(
         accumulate_grad_batches=args.gradient_accumulation_steps,
-        gpus=args.n_gpu,  # GPU 사용 설정
+        devices=args.n_gpu if args.n_gpu > 0 else 1,  # devices로 변경 (기본적으로 1개 디바이스 사용)
+        accelerator='gpu' if args.n_gpu > 0 else 'cpu',  # GPU 사용 시 'gpu', 아니면 'cpu'로 설정
         max_epochs=args.num_train_epochs,
         gradient_clip_val=args.max_grad_norm,
-        callbacks=callbacks,  # 콜백 설정
+        callbacks=callbacks,
         log_every_n_steps=1,
         num_sanity_val_steps=4,
         reload_dataloaders_every_n_epochs=True
@@ -283,7 +284,7 @@ def generic_train(model: BaseTransformer, args: argparse.Namespace, early_stoppi
 
     # 혼합 정밀도 설정
     if args.fp16:
-        train_params["precision"] = 16  # 최신 PyTorch Lightning에서는 precision으로 설정
+        train_params["precision"] = 16  # 최신 PyTorch Lightning에서는 'precision'으로 설정
 
     # TPU 설정
     if args.n_tpu_cores > 0:
@@ -293,7 +294,6 @@ def generic_train(model: BaseTransformer, args: argparse.Namespace, early_stoppi
     if args.n_gpu > 1:
         train_params["strategy"] = "ddp"  # 멀티 GPU 학습을 위한 DDP 전략
 
-    # Trainer 인스턴스 생성
     trainer = pl.Trainer(**train_params)
 
     # 모델 학습
