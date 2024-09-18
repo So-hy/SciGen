@@ -93,7 +93,6 @@ class BaseTransformer(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
     
-    # Optimizer 설정
         model = self.model
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -109,10 +108,8 @@ class BaseTransformer(pl.LightningModule):
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.hparams.learning_rate, eps=self.hparams.adam_epsilon)
         
         # 전체 학습 스텝 수 계산
-        # train_dataloader 호출을 통해 총 스텝 수를 계산
-        train_dataloader = self.train_dataloader()
         num_training_steps = (
-            len(train_dataloader.dataset) // self.hparams.train_batch_size
+            len(self.train_dataloader().dataset) // self.hparams.train_batch_size
         ) * self.hparams.num_train_epochs
         
         # Scheduler 설정
@@ -120,18 +117,22 @@ class BaseTransformer(pl.LightningModule):
             optimizer, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=num_training_steps
         )
         
-        return [optimizer], [scheduler]
+        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
         
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure=None):
         # optimizer_closure를 전달하여 step 호출
-        optimizer.step(closure=optimizer_closure)  # 자동으로 closure 실행
+        if optimizer_closure is not None:
+            optimizer.step(closure=optimizer_closure)  # 자동으로 closure 실행
+        else:
+            optimizer.step()  # closure가 없으면 그냥 step
+    
         optimizer.zero_grad()  # gradient 초기화
     
         # lr_schedulers가 존재하는 경우 step 호출
-        if self.lr_schedulers():
-            for lr_scheduler in self.lr_schedulers():
+        if self.lr_schedulers:
+            for lr_scheduler in self.lr_schedulers:
                 lr_scheduler.step()
-
+                
     def get_progress_bar_dict(self):
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
