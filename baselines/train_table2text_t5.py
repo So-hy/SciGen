@@ -260,7 +260,7 @@ def main(args):
           max_source_length=args.max_source_length,
           max_target_length=args.max_target_length,
       )
-      model.hparams = args
+    
       
     if args.early_stopping_patience >= 0:
         es_callback = get_early_stopping_callback('bleu_score', args.early_stopping_patience)  # 여기서 bleu_score 사용
@@ -287,7 +287,7 @@ def main(args):
                     max_source_length=args.max_source_length,
                     max_target_length=args.max_target_length,
                 )
-                model.hparams = args
+             
             trainer.test(model)
 
 if __name__ == "__main__":
