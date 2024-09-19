@@ -1,0 +1,178 @@
+{
+    "0": {
+        "paper": "When Choosing Plausible Alternatives, Clever Hans can be Clever",
+        "paper_id": "1911.00225v1",
+        "table_caption": "Table 5: Results of fine-tuned models on Balanced COPA. Easy: instances with superficial cues, Hard: instances without superficial cues.",
+        "table_column_names": [
+            "Model",
+            "Training data",
+            "Overall",
+            "Easy",
+            "Hard"
+        ],
+        "table_content_values": [
+            [
+                "BERT-large-FT",
+                "B-COPA",
+                "74.5 (± 0.7)",
+                "74.7 (± 0.4)",
+                "[BOLD] 74.4 (± 0.9)"
+            ],
+            [
+                "BERT-large-FT",
+                "B-COPA (50%)",
+                "74.3 (± 2.2)",
+                "76.8 (± 1.9)",
+                "72.8 (± 3.1)"
+            ],
+            [
+                "BERT-large-FT",
+                "COPA",
+                "[BOLD] 76.5 (± 2.7)",
+                "[BOLD] 83.9 (± 4.4)",
+                "71.9 (± 2.5)"
+            ],
+            [
+                "RoBERTa-large-FT",
+                "B-COPA",
+                "[BOLD] 89.0 (± 0.3)",
+                "88.9 (± 2.1)",
+                "[BOLD] 89.0 (± 0.8)"
+            ],
+            [
+                "RoBERTa-large-FT",
+                "B-COPA (50%)",
+                "86.1 (± 2.2)",
+                "87.4 (± 1.1)",
+                "85.4 (± 2.9)"
+            ],
+            [
+                "RoBERTa-large-FT",
+                "COPA",
+                "87.7 (± 0.9)",
+                "[BOLD] 91.6 (± 1.1)",
+                "85.3 (± 2.0)"
+            ]
+        ],
+        "text": "The results are shown in Table 5. The smaller performance gap between Easy and Hard subsets indicates that training on BCOPA encourages BERT and RoBERTa to rely less on superficial cues. Moreover, training on B-COPA improves performance on the Hard subset, both when training with all 1000 instances in B-COPA, and when matching the training size of the original COPA (500 instances, B-COPA 50%). Note that training on B-COPA 50% exposes the model to lexically less diverse training instances than the original COPA due to the high overlap between mirrored alternatives [CONTINUE] These results show that once superficial cues [CONTINUE] are removed, the models are able to learn the task to a high degree."
+    },
+    "1": {
+        "paper": "When Choosing Plausible Alternatives, Clever Hans can be Clever",
+        "paper_id": "1911.00225v1",
+        "table_caption": "Table 1: Reported results on COPA. With the exception of Wang et al. (2019), BERT-large and RoBERTa-large yields substantial improvements over prior approaches. See §2 for model details. * indicates our replication experiments.",
+        "table_column_names": [
+            "Model",
+            "Accuracy"
+        ],
+        "table_content_values": [
+            [
+                "BigramPMI Goodwin et al. ( 2012 )",
+                "63.4"
+            ],
+            [
+                "PMI Gordon et al. ( 2011 )",
+                "65.4"
+            ],
+            [
+                "PMI+Connectives Luo et al. ( 2016 )",
+                "70.2"
+            ],
+            [
+                "PMI+Con.+Phrase Sasaki et al. ( 2017 )",
+                "71.4"
+            ],
+            [
+                "BERT-large Wang et al. ( 2019 )",
+                "70.5"
+            ],
+            [
+                "BERT-large Sap et al. ( 2019 )",
+                "75.0"
+            ],
+            [
+                "BERT-large Li et al. ( 2019 )",
+                "75.4"
+            ],
+            [
+                "RoBERTa-large (finetuned)",
+                "90.6"
+            ],
+            [
+                "BERT-large (finetuned)*",
+                "76.5 ± 2.7"
+            ],
+            [
+                "RoBERTa-large (finetuned)*",
+                "87.7 ± 0.9"
+            ]
+        ],
+        "text": "Recent studies show that BERT and RoBERTa achieve considerable improvements on COPA (see Table 1)."
+    },
+    "2": {
+        "paper": "When Choosing Plausible Alternatives, Clever Hans can be Clever",
+        "paper_id": "1911.00225v1",
+        "table_caption": "Table 2: Applicability (App.), Productivity (Prod.) and Coverage (Cov.) of the various words in the alternatives of the COPA dev set.",
+        "table_column_names": [
+            "Cue",
+            "App.",
+            "Prod.",
+            "Cov."
+        ],
+        "table_content_values": [
+            [
+                "in",
+                "47",
+                "55.3",
+                "9.40"
+            ],
+            [
+                "was",
+                "55",
+                "61.8",
+                "11.0"
+            ],
+            [
+                "to",
+                "82",
+                "40.2",
+                "16.4"
+            ],
+            [
+                "the",
+                "85",
+                "38.8",
+                "17.0"
+            ],
+            [
+                "a",
+                "106",
+                "57.5",
+                "21.2"
+            ]
+        ],
+        "text": "Table 2 shows the five tokens with highest coverage. For example, a is the token with the highest coverage and appears in either a correct alternative or wrong alternative in 21.2% of COPA training instances. Its productivity of 57.5% expresses that it appears in in correct alternatives 7.5% more often than expected by random chance. This suggests that a model could rely on such unbalanced distributions of tokens to predict answers based only on alternatives without understanding the task."
+    },
+    "3": {
+        "paper": "When Choosing Plausible Alternatives, Clever Hans can be Clever",
+        "paper_id": "1911.00225v1",
+        "table_caption": "Table 3: Results of human performance evaluation of the original COPA and Balanced COPA.",
+        "table_column_names": [
+            "Dataset",
+            "Accuracy",
+            "Fleiss’ kappa  [ITALIC] k"
+        ],
+        "table_content_values": [
+            [
+                "Original COPA",
+                "100.0",
+                "0.973"
+            ],
+            [
+                "Balanced COPA",
+                "97.0",
+                "0.798"
+            ]
+        ],
+        "text": "The human evaluation shows that our mirrored instances are comparable in difficulty to the original ones (see Table 3)."
+    }
+}
