@@ -116,30 +116,30 @@ class SummarizationTrainer(BaseTransformer):
         loss = self._step(batch)
         return {"val_loss": loss, "preds": preds, "target": target}
 
-    def test_epoch_end(self, outputs):
-        if "preds" in outputs[0]:
-            output_test_predictions_file = os.path.join(self.hparams.output_dir, "test_predictions_" +
-                                                        str(self.count_valid_epoch) + ".txt")
-            output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
-                                                        str(self.count_valid_epoch) + ".txt")
-            with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
-                for output_batch in outputs:
-                    p_writer.writelines(convert_text(s) + "\n" for s in output_batch["preds"])
-                    t_writer.writelines(convert_text(s) + "\n" for s in output_batch["target"])
-            bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
-            moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
+    #def test_epoch_end(self, outputs):
+     #   if "preds" in outputs[0]:
+      #      output_test_predictions_file = os.path.join(self.hparams.output_dir, "test_predictions_" +
+       #                                                 str(self.count_valid_epoch) + ".txt")
+        #    output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
+         #                                               str(self.count_valid_epoch) + ".txt")
+          #  with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
+           #     for output_batch in outputs:
+            #        p_writer.writelines(convert_text(s) + "\n" for s in output_batch["preds"])
+             #       t_writer.writelines(convert_text(s) + "\n" for s in output_batch["target"])
+           # bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
+           # moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
 
-            logger.info("valid epoch: %s", self.count_valid_epoch)
-            logger.info("%s bleu_info: %s", self.count_valid_epoch, bleu_info)
-            logger.info("%s mover score: %s", self.count_valid_epoch, moverScore)
-
-            self.count_valid_epoch += 1
-
-        else:
-            logger.info('not in')
-
-        return self.check_validation_end(outputs)
-
+#            logger.info("valid epoch: %s", self.count_valid_epoch)
+ #           logger.info("%s bleu_info: %s", self.count_valid_epoch, bleu_info)
+  #          logger.info("%s mover score: %s", self.count_valid_epoch, moverScore)
+#
+ #           self.count_valid_epoch += 1
+#
+ #       else:
+  #          logger.info('not in')
+#
+ #       return self.check_validation_end(outputs)
+#
     def on_validation_epoch_end(self):
       """v2.0.0 이후 validation_epoch_end 대신 사용"""
       if len(self.validation_step_outputs) == 0:
