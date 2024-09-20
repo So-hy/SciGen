@@ -173,9 +173,21 @@ class SummarizationTrainer(BaseTransformer):
       predictions = [x["preds"] for x in self.validation_step_outputs]
       targets = [x["target"] for x in self.validation_step_outputs]
       
+      # 파일 경로 설정
+      output_test_predictions_file = os.path.join(self.hparams.output_dir, "test_predictions_" +
+                                                  str(self.count_valid_epoch) + ".txt")
+      output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
+                                              str(self.count_valid_epoch) + ".txt")
+  
+      # 출력 파일 쓰기
+      with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
+          for pred, target in zip(predictions, targets):
+              p_writer.write(pred + "\n")
+              t_writer.write(target + "\n")
+  
       # BLEU 스코어 계산
-      bleu_info = eval_sacre_bleu(targets, predictions)
-      moverScore = eval_mover_score(targets, predictions)
+      bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
+      moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
       
       # 결과 로깅
       self.log("test_loss", val_loss_mean)
@@ -184,6 +196,7 @@ class SummarizationTrainer(BaseTransformer):
       
       # validation_step_outputs 초기화
       self.validation_step_outputs.clear()
+      self.count_valid_epoch += 1
 
     def get_dataloader(self, type_path: str, batch_size: int, shuffle: bool = False) -> DataLoader:
         dataset = AgendaDataset(self.tokenizer, type_path=type_path, **self.dataset_kwargs)
