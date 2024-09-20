@@ -182,6 +182,10 @@ class SummarizationTrainer(BaseTransformer):
       predictions = [x["preds"] for x in self.validation_step_outputs]
       targets = [x["target"] for x in self.validation_step_outputs]
       
+      # 리스트 안의 리스트를 풀어냅니다.
+      flat_predictions = [item for sublist in predictions for item in sublist]
+      flat_targets = [item for sublist in targets for item in sublist]
+      
       # 파일 경로 설정
       output_test_predictions_file = os.path.join(self.hparams.output_dir, "test_predictions_" +
                                                   str(self.count_valid_epoch) + ".txt")
@@ -194,7 +198,7 @@ class SummarizationTrainer(BaseTransformer):
       
       # 출력 파일 쓰기
       with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
-          for pred, target in zip(predictions, targets):
+          for pred, target in zip(flat_predictions, flat_targets):
               p_writer.write(pred + "\n")
               t_writer.write(target + "\n")
   
