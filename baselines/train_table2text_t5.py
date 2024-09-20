@@ -175,7 +175,6 @@ class SummarizationTrainer(BaseTransformer):
 
     def on_test_epoch_end(self):
       if len(self.validation_step_outputs) == 0:
-          logger.warning("No data in validation_step_outputs. Skipping file writing.")
           return
       
       val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
@@ -192,10 +191,6 @@ class SummarizationTrainer(BaseTransformer):
       output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
                                               str(self.count_valid_epoch) + ".txt")
   
-      # 로그 추가: 파일 경로 및 데이터 확인
-      logger.info(f"Writing predictions to {output_test_predictions_file}")
-      logger.info(f"Writing targets to {output_test_targets_file}")
-      
       # 출력 파일 쓰기
       with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
           for pred, target in zip(flat_predictions, flat_targets):
@@ -206,10 +201,14 @@ class SummarizationTrainer(BaseTransformer):
       bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
       moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
       
+      # moverScore는 tuple이므로 개별적으로 로그에 기록
+      mover_score_mean, mover_score_median = moverScore
+      
       # 결과 로깅
       self.log("test_loss", val_loss_mean)
       self.log("bleu_score", bleu_info)
-      self.log("mover_score", moverScore)
+      self.log("mover_score_mean", mover_score_mean)
+      self.log("mover_score_median", mover_score_median)
       
       # validation_step_outputs 초기화
       self.validation_step_outputs.clear()
