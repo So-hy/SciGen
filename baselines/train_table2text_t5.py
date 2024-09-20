@@ -97,24 +97,32 @@ class SummarizationTrainer(BaseTransformer):
         return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_step(self, batch, batch_idx):
-        pad_token_id = self.tokenizer.pad_token_id
-        source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
-        generated_ids = self.model.generate(
-            input_ids=source_ids,
-            attention_mask=source_mask,
-            num_beams=5,
-            max_length=512,
-            length_penalty=5.0,
-            early_stopping=True,
-            use_cache=True,
-        )
-        preds = [
-            self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-            for g in generated_ids
-        ]
-        target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
-        loss = self._step(batch)
-        return {"val_loss": loss, "preds": preds, "target": target}
+      pad_token_id = self.tokenizer.pad_token_id
+      source_ids, source_mask, y = AgendaDataset.trim_seq2seq_batch(batch, pad_token_id)
+      generated_ids = self.model.generate(
+          input_ids=source_ids,
+          attention_mask=source_mask,
+          num_beams=5,
+          max_length=512,
+          length_penalty=5.0,
+          early_stopping=True,
+          use_cache=True,
+      )
+      
+      # 예측값과 타겟값을 디코딩
+      preds = [self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
+      target = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in y]
+  
+      # 손실 계산
+      loss = self._step(batch)
+  
+      # validation_step_outputs에 예측값과 타겟값 추가
+      self.validation_step_outputs.append({"val_loss": loss, "preds": preds, "target": target})
+  
+      # 로그 추가: 예측값과 타겟값 확인
+      logger.info(f"Test Step: preds = {preds}, target = {target}")
+  
+      return {"val_loss": loss, "preds": preds, "target": target}
 
     #def test_epoch_end(self, outputs):
      #   if "preds" in outputs[0]:
@@ -167,6 +175,7 @@ class SummarizationTrainer(BaseTransformer):
 
     def on_test_epoch_end(self):
       if len(self.validation_step_outputs) == 0:
+          logger.warning("No data in validation_step_outputs. Skipping file writing.")
           return
       
       val_loss_mean = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
@@ -179,6 +188,10 @@ class SummarizationTrainer(BaseTransformer):
       output_test_targets_file = os.path.join(self.hparams.output_dir, "test_targets_" +
                                               str(self.count_valid_epoch) + ".txt")
   
+      # 로그 추가: 파일 경로 및 데이터 확인
+      logger.info(f"Writing predictions to {output_test_predictions_file}")
+      logger.info(f"Writing targets to {output_test_targets_file}")
+      
       # 출력 파일 쓰기
       with open(output_test_predictions_file, "w") as p_writer, open(output_test_targets_file, "w") as t_writer:
           for pred, target in zip(predictions, targets):
@@ -289,7 +302,7 @@ def main(args):
     if args.do_predict:
         if args.checkpoint_model:
             trainer.test(SummarizationTrainer.load_from_checkpoint(args.checkpoint_model))
-      
+            logger.info(f"Loaded model from checkpoint: {args.checkpoint_model}")
         else:
             checkpoints = list(sorted(glob.glob(os.path.join(args.output_dir, "*.ckpt"), recursive=True)))
             if checkpoints:
