@@ -7,6 +7,7 @@ from typing import List
 from pathlib import Path
 from collections import defaultdict
 
+
 import torch
 from torch.utils.data import DataLoader
 import sys
@@ -14,7 +15,7 @@ from lightning_base import BaseTransformer, add_generic_args, generic_train, get
 from callbacks import get_checkpoint_callback, get_early_stopping_callback
 from utils import convert_text, eval_bleu_sents, eval_sacre_bleu, eval_mover_score, eval_bleu
 from utils import Table2textDataset as AgendaDataset
-
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s %(module)s - %(funcName)s: %(message)s',
