@@ -278,13 +278,13 @@ def main(args):
     
       
     if args.early_stopping_patience >= 0:
-        es_callback = get_early_stopping_callback('mover', args.early_stopping_patience)  # 여기서 bleu_score 사용
+        es_callback = get_early_stopping_callback('mover_score_mean', args.early_stopping_patience)  # 여기서 bleu_score 사용
     else:
         es_callback = False
     
     trainer = generic_train(
         model, args, 
-        checkpoint_callback=get_checkpoint_callback(args.output_dir, 'mover'),  # 여기서도 bleu_score 사용
+        checkpoint_callback=get_checkpoint_callback(args.output_dir, 'mover_score_mean'),  # 여기서도 bleu_score 사용
         early_stopping_callback=es_callback
     )
 
