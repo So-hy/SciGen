@@ -15,11 +15,13 @@ from lightning_base import BaseTransformer, add_generic_args, generic_train, get
 from callbacks import get_checkpoint_callback, get_early_stopping_callback
 from utils import convert_text, eval_bleu_sents, eval_sacre_bleu, eval_mover_score, eval_bleu
 from utils import Table2textDataset as AgendaDataset
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format='%(asctime)s %(module)s - %(funcName)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class SummarizationTrainer(BaseTransformer):
 
@@ -197,11 +199,16 @@ class SummarizationTrainer(BaseTransformer):
           for pred, target in zip(flat_predictions, flat_targets):
               p_writer.write(pred + "\n")
               t_writer.write(target + "\n")
-  
+      
       # BLEU 스코어 계산
       bleu_info = eval_sacre_bleu(output_test_targets_file, output_test_predictions_file)
       moverScore = eval_mover_score(output_test_targets_file, output_test_predictions_file)
-      
+            # Meteor 점수 계산
+      meteor_score = compute_meteor(flat_predictions, flat_targets)
+  
+      # BERTScore 계산
+      bert_score_info = eval_bertscore(output_test_targets_file, output_test_predictions_file)
+
       # moverScore는 tuple이므로 개별적으로 로그에 기록
       mover_score_mean, mover_score_median = moverScore
       
@@ -210,7 +217,9 @@ class SummarizationTrainer(BaseTransformer):
       self.log("bleu_score", bleu_info)
       self.log("mover_score_mean", mover_score_mean)
       self.log("mover_score_median", mover_score_median)
-      
+      self.log("meteor_score", meteor_score)
+      self.log("bert_score", bert_score_info)
+    
       # validation_step_outputs 초기화
       self.validation_step_outputs.clear()
       self.count_valid_epoch += 1
@@ -293,13 +302,13 @@ def main(args):
     
       
     if args.early_stopping_patience >= 0:
-        es_callback = get_early_stopping_callback('bleu_score', args.early_stopping_patience)  # 여기서 bleu_score 사용
+        es_callback = get_early_stopping_callback('val_loss', args.early_stopping_patience)  # 여기서 bleu_score 사용
     else:
         es_callback = False
     
     trainer = generic_train(
         model, args, 
-        checkpoint_callback=get_checkpoint_callback(args.output_dir, 'bleu_score'),  # 여기서도 bleu_score 사용
+        checkpoint_callback=get_checkpoint_callback(args.output_dir, 'val_loss'),  # 여기서도 bleu_score 사용
         early_stopping_callback=es_callback
     )
 
